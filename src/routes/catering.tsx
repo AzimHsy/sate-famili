@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Check, MessageCircle, Sparkles } from "lucide-react";
 import { useLang, t } from "@/lib/i18n";
 import { CATERING } from "@/lib/cateringData";
-import { CONTACT, waLink } from "@/lib/contact";
+import { CONTACT, waLinkForBranch } from "@/lib/contact";
+import { BranchSelector } from "@/components/BranchSelector";
 import cateringHero from "@/assets/gallery-6.jpg";
 
 export const Route = createFileRoute("/catering")({
@@ -29,12 +31,17 @@ export const Route = createFileRoute("/catering")({
 
 function CateringPage() {
   const { lang } = useLang();
-  const inquireHref = (pkg: string) =>
-    waLink(
+  const [branchId, setBranchId] = useState<number | null>(null);
+
+  const inquireHref = (pkg: string) => {
+    if (!branchId) return "#";
+    return waLinkForBranch(
+      branchId,
       lang === "bm"
         ? `Salam! Saya berminat dengan pakej katering "${pkg}" dari ${CONTACT.name}.`
         : `Hi! I'm interested in the "${pkg}" catering package from ${CONTACT.name}.`,
     );
+  };
 
   return (
     <div>
@@ -63,8 +70,21 @@ function CateringPage() {
         </div>
       </section>
 
+      {/* Branch selector */}
+      <section className="py-10">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl rounded-2xl border border-border bg-card p-5 shadow-card">
+            <BranchSelector
+              value={branchId}
+              onChange={setBranchId}
+              label={t(lang, "branch.selectBranch")}
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Packages */}
-      <section className="py-20 sm:py-24">
+      <section className="pb-20 sm:pb-24">
         <div className="mx-auto grid max-w-7xl gap-6 px-4 sm:px-6 lg:grid-cols-3 lg:px-8">
           {CATERING.map((pkg) => {
             const name = lang === "bm" ? pkg.nameBM : pkg.nameEN;
@@ -117,14 +137,20 @@ function CateringPage() {
                   href={inquireHref(name)}
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-disabled={!branchId}
+                  onClick={(e) => !branchId && e.preventDefault()}
                   className={`mt-8 inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-transform hover:scale-[1.02] ${
-                    pkg.popular
-                      ? "bg-gradient-gold text-primary shadow-gold"
-                      : "bg-primary text-primary-foreground"
+                    !branchId
+                      ? "cursor-not-allowed bg-muted text-muted-foreground"
+                      : pkg.popular
+                        ? "bg-gradient-gold text-primary shadow-gold"
+                        : "bg-primary text-primary-foreground"
                   }`}
                 >
                   <MessageCircle className="h-4 w-4" />
-                  {t(lang, "catering.inquire")}
+                  {!branchId
+                    ? t(lang, "branch.selectFirst")
+                    : t(lang, "catering.inquire")}
                 </a>
               </article>
             );
@@ -142,17 +168,30 @@ function CateringPage() {
             <p className="mt-2 text-muted-foreground">{t(lang, "catering.customQuoteSub")}</p>
           </div>
           <a
-            href={waLink(
-              lang === "bm"
-                ? `Salam! Saya nak quote katering tersuai dari ${CONTACT.name}.`
-                : `Hi! I'd like a custom catering quote from ${CONTACT.name}.`,
-            )}
+            href={
+              branchId
+                ? waLinkForBranch(
+                    branchId,
+                    lang === "bm"
+                      ? `Salam! Saya nak quote katering tersuai dari ${CONTACT.name}.`
+                      : `Hi! I'd like a custom catering quote from ${CONTACT.name}.`,
+                  )
+                : "#"
+            }
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.03]"
+            aria-disabled={!branchId}
+            onClick={(e) => !branchId && e.preventDefault()}
+            className={`inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-semibold transition-transform hover:scale-[1.03] ${
+              !branchId
+                ? "cursor-not-allowed bg-muted text-muted-foreground"
+                : "bg-primary text-primary-foreground"
+            }`}
           >
             <MessageCircle className="h-4 w-4" />
-            {t(lang, "catering.inquire")}
+            {!branchId
+              ? t(lang, "branch.selectFirst")
+              : t(lang, "catering.inquire")}
           </a>
         </div>
       </section>

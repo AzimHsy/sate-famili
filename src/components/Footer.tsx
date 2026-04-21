@@ -1,15 +1,16 @@
 import { Link } from "@tanstack/react-router";
-import { Instagram, Facebook, MapPin, Phone, Clock } from "lucide-react";
+import { Instagram, Facebook, MapPin, Phone } from "lucide-react";
 import { useLang, t } from "@/lib/i18n";
-import { CONTACT } from "@/lib/contact";
+import { CONTACT, BRANCHES } from "@/lib/contact";
 
 export function Footer() {
   const { lang } = useLang();
 
   return (
     <footer className="mt-24 border-t border-border bg-primary text-primary-foreground">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-4 lg:px-8">
-        <div className="md:col-span-2">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.4fr_0.8fr_1fr] lg:px-8">
+        {/* Brand */}
+        <div>
           <div className="flex items-center gap-2">
             <span className="grid h-10 w-10 place-items-center rounded-full bg-secondary text-primary font-display text-xl font-bold">
               S
@@ -41,6 +42,7 @@ export function Footer() {
           </div>
         </div>
 
+        {/* Explore */}
         <div>
           <h3 className="font-display text-sm font-semibold uppercase tracking-widest text-secondary">
             {t(lang, "footer.explore")}
@@ -66,34 +68,37 @@ export function Footer() {
           </ul>
         </div>
 
+        {/* Branches */}
         <div>
           <h3 className="font-display text-sm font-semibold uppercase tracking-widest text-secondary">
-            {t(lang, "footer.visit")}
+            {t(lang, "footer.branches")}
           </h3>
-          <ul className="mt-4 space-y-3 text-sm text-primary-foreground/80">
-            <li className="flex items-start gap-2">
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-secondary" />
-              <span>{CONTACT.address}</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Phone className="mt-0.5 h-4 w-4 shrink-0 text-secondary" />
-              <a href={`tel:${CONTACT.phoneTel}`} className="hover:text-secondary">
-                {CONTACT.whatsappDisplay}
-              </a>
-            </li>
-            <li className="flex items-start gap-2">
-              <Clock className="mt-0.5 h-4 w-4 shrink-0 text-secondary" />
-              <div className="space-y-0.5">
-                {CONTACT.hours.map((h) => (
-                  <div key={h.time}>
-                    <span className="font-medium text-primary-foreground">
-                      {lang === "bm" ? h.dayBM : h.dayEN}:
-                    </span>{" "}
-                    {h.time}
-                  </div>
-                ))}
-              </div>
-            </li>
+          <ul className="mt-4 space-y-5">
+            {BRANCHES.map((branch) => (
+              <li key={branch.id}>
+                <p className="text-sm font-semibold text-primary-foreground">
+                  {lang === "bm" ? branch.shortName : branch.shortNameEN}
+                  {branch.isHQ && (
+                    <span className="ml-1 text-[9px] font-bold uppercase text-secondary">
+                      HQ
+                    </span>
+                  )}
+                </p>
+                <div className="mt-1 flex items-start gap-1.5 text-xs text-primary-foreground/70">
+                  <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-secondary" />
+                  <span>{branch.address}</span>
+                </div>
+                <div className="mt-0.5 flex items-center gap-1.5 text-xs text-primary-foreground/70">
+                  <Phone className="h-3 w-3 shrink-0 text-secondary" />
+                  <a
+                    href={`tel:${branch.phoneTel}`}
+                    className="hover:text-secondary"
+                  >
+                    {branch.whatsappDisplay}
+                  </a>
+                </div>
+              </li>
+            ))}
           </ul>
         </div>
       </div>

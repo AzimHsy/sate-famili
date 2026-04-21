@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { Menu, X, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLang, t } from "@/lib/i18n";
 import { LanguageToggle } from "./LanguageToggle";
-import { CONTACT, waLink } from "@/lib/contact";
+import { CONTACT, BRANCHES } from "@/lib/contact";
 
 const NAV_LINKS = [
   { to: "/", key: "home" as const },
@@ -21,11 +21,38 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
   const location = useLocation();
 
-  const orderHref = waLink(
-    lang === "bm"
-      ? `Salam! Saya nak order dari ${CONTACT.name}.`
-      : `Hi! I'd like to place an order from ${CONTACT.name}.`,
-  );
+  // Branch picker popover for desktop
+  const [popOpen, setPopOpen] = useState(false);
+  const popRef = useRef<HTMLDivElement>(null);
+
+  // Branch picker for mobile
+  const [mobilePopOpen, setMobilePopOpen] = useState(false);
+
+  useEffect(() => {
+    if (!popOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (popRef.current && !popRef.current.contains(e.target as Node)) {
+        setPopOpen(false);
+      }
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setPopOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [popOpen]);
+
+  const buildHref = (branch: (typeof BRANCHES)[number]) => {
+    const msg =
+      lang === "bm"
+        ? `Salam! Saya nak order dari ${CONTACT.name} (${branch.shortName}).`
+        : `Hi! I'd like to place an order from ${CONTACT.name} (${branch.shortNameEN}).`;
+    return `https://wa.me/${branch.whatsappNumber}?text=${encodeURIComponent(msg)}`;
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur-md">
@@ -70,15 +97,53 @@ export function Navbar() {
 
         <div className="hidden items-center gap-3 lg:flex">
           <LanguageToggle />
-          <a
-            href={orderHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full bg-gradient-gold px-4 py-2 text-sm font-semibold text-primary shadow-gold transition-transform hover:scale-[1.03]"
-          >
-            <MessageCircle className="h-4 w-4" />
-            {t(lang, "nav.orderNow")}
-          </a>
+          {/* Desktop order button with branch popover */}
+          <div ref={popRef} className="relative">
+            <button
+              onClick={() => setPopOpen((v) => !v)}
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-gold px-4 py-2 text-sm font-semibold text-primary shadow-gold transition-transform hover:scale-[1.03]"
+            >
+              <MessageCircle className="h-4 w-4" />
+              {t(lang, "nav.orderNow")}
+            </button>
+            {popOpen && (
+              <div className="absolute right-0 top-full z-50 mt-2 w-64 animate-in fade-in slide-in-from-top-2 rounded-2xl border border-border bg-card p-3 shadow-elegant">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-secondary">
+                  {t(lang, "branch.selectBranch")}
+                </p>
+                <ul className="space-y-1">
+                  {BRANCHES.map((branch) => (
+                    <li key={branch.id}>
+                      <a
+                        href={buildHref(branch)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setPopOpen(false)}
+                        className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-secondary/10"
+                      >
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[oklch(0.7_0.17_145)] text-white">
+                          <MessageCircle className="h-3.5 w-3.5" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-semibold text-foreground">
+                            {lang === "bm" ? branch.shortName : branch.shortNameEN}
+                            {branch.isHQ && (
+                              <span className="ml-1 text-[9px] font-bold uppercase text-secondary">
+                                HQ
+                              </span>
+                            )}
+                          </span>
+                          <span className="block text-[11px] text-muted-foreground">
+                            {branch.whatsappDisplay}
+                          </span>
+                        </span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
 
         <button
@@ -114,17 +179,53 @@ export function Navbar() {
                 </Link>
               );
             })}
-            <div className="mt-3 flex items-center justify-between gap-3 border-t border-border/60 pt-4">
-              <LanguageToggle />
-              <a
-                href={orderHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-gradient-gold px-4 py-2.5 text-sm font-semibold text-primary shadow-gold"
-              >
-                <MessageCircle className="h-4 w-4" />
-                {t(lang, "nav.orderNow")}
-              </a>
+            <div className="mt-3 border-t border-border/60 pt-4">
+              <div className="flex items-center justify-between gap-3">
+                <LanguageToggle />
+                <button
+                  onClick={() => setMobilePopOpen((v) => !v)}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-gradient-gold px-4 py-2.5 text-sm font-semibold text-primary shadow-gold"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  {t(lang, "nav.orderNow")}
+                </button>
+              </div>
+              {/* Mobile branch list */}
+              {mobilePopOpen && (
+                <ul className="mt-3 space-y-1.5">
+                  {BRANCHES.map((branch) => (
+                    <li key={branch.id}>
+                      <a
+                        href={buildHref(branch)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => {
+                          setMobilePopOpen(false);
+                          setOpen(false);
+                        }}
+                        className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:border-secondary/40"
+                      >
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[oklch(0.7_0.17_145)] text-white">
+                          <MessageCircle className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-semibold text-foreground">
+                            {lang === "bm" ? branch.shortName : branch.shortNameEN}
+                            {branch.isHQ && (
+                              <span className="ml-1 text-[9px] font-bold uppercase text-secondary">
+                                HQ
+                              </span>
+                            )}
+                          </span>
+                          <span className="block text-[11px] text-muted-foreground">
+                            {branch.whatsappDisplay}
+                          </span>
+                        </span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </nav>
         </div>

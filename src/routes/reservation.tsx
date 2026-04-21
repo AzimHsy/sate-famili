@@ -2,7 +2,8 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { MessageCircle, CalendarDays, Clock, Users, User, Phone } from "lucide-react";
 import { useLang, t } from "@/lib/i18n";
-import { CONTACT, waLink } from "@/lib/contact";
+import { CONTACT, waLinkForBranch, getBranch } from "@/lib/contact";
+import { BranchSelector } from "@/components/BranchSelector";
 
 export const Route = createFileRoute("/reservation")({
   head: () => ({
@@ -11,7 +12,7 @@ export const Route = createFileRoute("/reservation")({
       {
         name: "description",
         content:
-          "Tempah meja anda di Restoran Sate Famili Kajang. Tempahan dihantar terus ke WhatsApp untuk pengesahan pantas.",
+          "Tempah meja anda di Restoran Sate Famili Klang atau Petaling Jaya. Tempahan dihantar terus ke WhatsApp untuk pengesahan pantas.",
       },
       { property: "og:title", content: "Reserve a Table — Restoran Sate Famili" },
       {
@@ -27,6 +28,7 @@ function ReservationPage() {
   const { lang } = useLang();
   const today = new Date().toISOString().split("T")[0];
 
+  const [branchId, setBranchId] = useState<number | null>(null);
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -37,9 +39,16 @@ function ReservationPage() {
   });
 
   const buildMessage = () => {
+    const branch = branchId ? getBranch(branchId) : null;
+    const branchName = branch
+      ? lang === "bm"
+        ? branch.shortName
+        : branch.shortNameEN
+      : "";
     const greeting =
       lang === "bm" ? "Salam! Saya nak buat tempahan:" : "Hi! I'd like to make a reservation:";
     const lines = [
+      `${lang === "bm" ? "Cawangan" : "Branch"}: ${branchName}`,
       `${lang === "bm" ? "Nama" : "Name"}: ${form.name}`,
       `${lang === "bm" ? "Tarikh" : "Date"}: ${form.date}`,
       `${lang === "bm" ? "Masa" : "Time"}: ${form.time}`,
@@ -52,12 +61,12 @@ function ReservationPage() {
     return `${greeting}\n${lines.join("\n")}`;
   };
 
-  const valid = form.name.trim() && form.phone.trim() && form.date && form.time;
+  const valid = form.name.trim() && form.phone.trim() && form.date && form.time && branchId;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!valid) return;
-    window.open(waLink(buildMessage()), "_blank", "noopener,noreferrer");
+    if (!valid || !branchId) return;
+    window.open(waLinkForBranch(branchId, buildMessage()), "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -78,6 +87,13 @@ function ReservationPage() {
         onSubmit={handleSubmit}
         className="mt-12 grid gap-5 rounded-3xl border border-border bg-card p-6 shadow-card sm:p-10"
       >
+        {/* Branch selector — first field */}
+        <BranchSelector
+          value={branchId}
+          onChange={setBranchId}
+          label={t(lang, "branch.selectBranch")}
+        />
+
         <Field
           icon={User}
           label={t(lang, "reservation.name")}

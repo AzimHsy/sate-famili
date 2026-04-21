@@ -71,6 +71,11 @@ export const translations = {
       bm: "Hantar pesanan melalui WhatsApp atau tempah meja malam ini.",
       en: "Send your order via WhatsApp or book a table for tonight.",
     },
+    branchesTitle: { bm: "Cawangan Kami", en: "Our Locations" },
+    branchesSub: {
+      bm: "Kunjungi kami di mana-mana cawangan.",
+      en: "Visit us at any of our branches.",
+    },
   },
   menu: {
     title: { bm: "Menu Kami", en: "Our Menu" },
@@ -193,8 +198,23 @@ export const translations = {
     },
     explore: { bm: "Layari", en: "Explore" },
     visit: { bm: "Lawati Kami", en: "Visit Us" },
+    branches: { bm: "Cawangan", en: "Branches" },
     follow: { bm: "Ikuti Kami", en: "Follow" },
     rights: { bm: "Hak cipta terpelihara.", en: "All rights reserved." },
+  },
+  branch: {
+    selectBranch: { bm: "Pilih Cawangan", en: "Select Branch" },
+    hq: { bm: "Cawangan Utama", en: "Main Branch" },
+    ourBranches: { bm: "Cawangan Kami", en: "Our Branches" },
+    closed: { bm: "Tutup", en: "Closed" },
+    chatBranch: { bm: "Chat cawangan ini", en: "Chat this branch" },
+    operatingHours: { bm: "Waktu Operasi", en: "Operating Hours" },
+    viewOnMap: { bm: "Lihat di Peta", en: "View on Map" },
+    selectFirst: {
+      bm: "Sila pilih cawangan terlebih dahulu",
+      en: "Please select a branch first",
+    },
+    branchLabel: { bm: "Cawangan", en: "Branch" },
   },
 } as const;
 

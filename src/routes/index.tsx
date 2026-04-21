@@ -1,9 +1,20 @@
+import { useState, useRef, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { ArrowRight, Flame, HeartHandshake, Leaf, MessageCircle } from "lucide-react";
+import {
+  ArrowRight,
+  Flame,
+  HeartHandshake,
+  Leaf,
+  MessageCircle,
+  MapPin,
+  Phone,
+  Clock,
+  Star,
+} from "lucide-react";
 import heroImage from "@/assets/hero-satay.jpg";
 import { useLang, t } from "@/lib/i18n";
-import { CONTACT, waLink } from "@/lib/contact";
+import { CONTACT, BRANCHES } from "@/lib/contact";
 import { MENU } from "@/lib/menuData";
 
 export const Route = createFileRoute("/")({
@@ -13,13 +24,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Sate ayam, daging dan kambing dibakar di atas bara arang. Kuah kacang famili rahsia. Order via WhatsApp atau tempah meja di Kajang.",
+          "Sate ayam, daging dan kambing dibakar di atas bara arang. Kuah kacang famili rahsia. Order via WhatsApp atau tempah meja di Klang & Petaling Jaya.",
       },
       { property: "og:title", content: "Restoran Sate Famili — Authentic Charcoal Satay" },
       {
         property: "og:description",
         content:
-          "Heritage charcoal-grilled satay since 1985. Order via WhatsApp or reserve a table.",
+          "Heritage charcoal-grilled satay since 1985. 3 branches in Klang & PJ. Order via WhatsApp or reserve a table.",
       },
       { property: "og:image", content: heroImage },
       { property: "twitter:image", content: heroImage },
@@ -28,16 +39,102 @@ export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
+/* ---------- branch picker popover (used by CTA buttons) ---------- */
+function BranchPickerPopover({
+  open,
+  onClose,
+  containerRef,
+  lang,
+  messageBuilder,
+}: {
+  open: boolean;
+  onClose: () => void;
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  lang: "bm" | "en";
+  messageBuilder: (branchShortName: string) => string;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open, onClose, containerRef]);
+
+  if (!open) return null;
+
+  return (
+    <div className="absolute left-0 top-full z-50 mt-2 w-72 animate-in fade-in slide-in-from-top-2 rounded-2xl border border-border bg-card p-3 shadow-elegant">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-secondary">
+        {t(lang, "branch.selectBranch")}
+      </p>
+      <ul className="space-y-1">
+        {BRANCHES.map((branch) => {
+          const branchLabel =
+            lang === "bm" ? branch.shortName : branch.shortNameEN;
+          const msg = messageBuilder(branchLabel);
+          const href = `https://wa.me/${branch.whatsappNumber}?text=${encodeURIComponent(msg)}`;
+          return (
+            <li key={branch.id}>
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onClose}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-secondary/10"
+              >
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[oklch(0.7_0.17_145)] text-white">
+                  <MessageCircle className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-foreground">
+                    {branchLabel}
+                    {branch.isHQ && (
+                      <span className="ml-1 text-[9px] font-bold uppercase text-secondary">
+                        HQ
+                      </span>
+                    )}
+                  </span>
+                  <span className="block text-[11px] text-muted-foreground">
+                    {branch.whatsappDisplay}
+                  </span>
+                </span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/* ---------- main page ---------- */
 function HomePage() {
   const { lang } = useLang();
-
-  const orderHref = waLink(
-    lang === "bm"
-      ? `Salam! Saya nak order dari ${CONTACT.name}.`
-      : `Hi! I'd like to place an order from ${CONTACT.name}.`,
-  );
-
   const featured = MENU.filter((m) => m.popular).slice(0, 4);
+
+  // Popover state for hero CTA
+  const [heroPopOpen, setHeroPopOpen] = useState(false);
+  const heroRef = useRef<HTMLDivElement>(null);
+
+  // Popover state for final CTA
+  const [finalPopOpen, setFinalPopOpen] = useState(false);
+  const finalRef = useRef<HTMLDivElement>(null);
+
+  const orderMsgBuilder = (branchName: string) =>
+    lang === "bm"
+      ? `Salam! Saya nak order dari ${CONTACT.name} (${branchName}).`
+      : `Hi! I'd like to place an order from ${CONTACT.name} (${branchName}).`;
 
   return (
     <>
@@ -88,15 +185,23 @@ function HomePage() {
             transition={{ duration: 0.7, delay: 0.3 }}
             className="mt-10 flex flex-wrap items-center gap-3"
           >
-            <a
-              href={orderHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-gold px-6 py-3.5 text-sm font-semibold text-primary shadow-gold transition-transform hover:scale-[1.03]"
-            >
-              <MessageCircle className="h-4 w-4" />
-              {t(lang, "home.ctaOrder")}
-            </a>
+            {/* Order CTA with branch picker */}
+            <div ref={heroRef} className="relative">
+              <button
+                onClick={() => setHeroPopOpen((v) => !v)}
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-gold px-6 py-3.5 text-sm font-semibold text-primary shadow-gold transition-transform hover:scale-[1.03]"
+              >
+                <MessageCircle className="h-4 w-4" />
+                {t(lang, "home.ctaOrder")}
+              </button>
+              <BranchPickerPopover
+                open={heroPopOpen}
+                onClose={() => setHeroPopOpen(false)}
+                containerRef={heroRef}
+                lang={lang}
+                messageBuilder={orderMsgBuilder}
+              />
+            </div>
             <Link
               to="/reservation"
               className="inline-flex items-center gap-2 rounded-full border border-primary-foreground/30 bg-primary-foreground/10 px-6 py-3.5 text-sm font-semibold text-primary-foreground backdrop-blur transition-colors hover:bg-primary-foreground/20"
@@ -215,6 +320,115 @@ function HomePage() {
         </div>
       </section>
 
+      {/* OUR BRANCHES */}
+      <section className="bg-gradient-warm py-20 sm:py-28">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl text-center">
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
+              {t(lang, "branch.ourBranches")}
+            </span>
+            <h2 className="mt-3 font-display text-3xl font-bold text-foreground sm:text-4xl">
+              {t(lang, "home.branchesTitle")}
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              {t(lang, "home.branchesSub")}
+            </p>
+          </div>
+
+          <div className="mt-14 grid gap-6 md:grid-cols-3">
+            {BRANCHES.map((branch, i) => {
+              const chatMsg =
+                lang === "bm"
+                  ? `Salam! Saya ada pertanyaan tentang ${CONTACT.name} (${branch.shortName}).`
+                  : `Hi! I have a question about ${CONTACT.name} (${branch.shortNameEN}).`;
+              const chatHref = `https://wa.me/${branch.whatsappNumber}?text=${encodeURIComponent(chatMsg)}`;
+
+              return (
+                <motion.article
+                  key={branch.id}
+                  initial={{ opacity: 0, y: 18 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-50px" }}
+                  transition={{ duration: 0.5, delay: i * 0.1 }}
+                  className="group flex flex-col rounded-2xl border border-border bg-card shadow-card transition-transform hover:-translate-y-1"
+                >
+                  {/* Compact map */}
+                  <div className="h-40 w-full overflow-hidden rounded-t-2xl">
+                    <iframe
+                      title={`Map for ${branch.shortName}`}
+                      src={branch.mapsEmbedSrc}
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      className="h-full w-full border-0"
+                    />
+                  </div>
+
+                  <div className="flex flex-1 flex-col p-6">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-display text-lg font-bold text-foreground">
+                        {lang === "bm" ? branch.shortName : branch.shortNameEN}
+                      </h3>
+                      <div className="flex shrink-0 items-center gap-1">
+                        {branch.isHQ && (
+                          <span className="rounded-full bg-secondary/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-secondary">
+                            HQ
+                          </span>
+                        )}
+                        {branch.googleRating && (
+                          <span className="flex items-center gap-0.5 text-xs font-semibold text-secondary">
+                            <Star className="h-3 w-3 fill-secondary" />
+                            {branch.googleRating}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                      <li className="flex items-start gap-2">
+                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-secondary" />
+                        <span className="line-clamp-2">{branch.address}</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Phone className="h-3.5 w-3.5 shrink-0 text-secondary" />
+                        <a
+                          href={`tel:${branch.phoneTel}`}
+                          className="hover:text-secondary"
+                        >
+                          {branch.whatsappDisplay}
+                        </a>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-secondary" />
+                        <div className="space-y-0.5 text-xs">
+                          {branch.hours.map((h) => (
+                            <div key={h.dayBM + h.time}>
+                              <span className="font-medium text-foreground">
+                                {lang === "bm" ? h.dayBM : h.dayEN}:
+                              </span>{" "}
+                              {h.time}
+                            </div>
+                          ))}
+                        </div>
+                      </li>
+                    </ul>
+
+                    <a
+                      href={chatHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-auto inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-gold px-4 py-2.5 text-sm font-semibold text-primary shadow-gold transition-transform hover:scale-[1.02] pt-5 mt-5"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      {t(lang, "branch.chatBranch")}
+                    </a>
+                  </div>
+                </motion.article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       {/* FINAL CTA */}
       <section className="px-4 pb-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl overflow-hidden rounded-3xl bg-primary p-8 text-primary-foreground shadow-elegant sm:p-14">
@@ -226,15 +440,23 @@ function HomePage() {
               <p className="mt-3 text-primary-foreground/80">{t(lang, "home.finalCtaSub")}</p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <a
-                href={orderHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full bg-gradient-gold px-6 py-3.5 text-sm font-semibold text-primary shadow-gold transition-transform hover:scale-[1.03]"
-              >
-                <MessageCircle className="h-4 w-4" />
-                {t(lang, "home.ctaOrder")}
-              </a>
+              {/* Order CTA with branch picker */}
+              <div ref={finalRef} className="relative">
+                <button
+                  onClick={() => setFinalPopOpen((v) => !v)}
+                  className="inline-flex items-center gap-2 rounded-full bg-gradient-gold px-6 py-3.5 text-sm font-semibold text-primary shadow-gold transition-transform hover:scale-[1.03]"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  {t(lang, "home.ctaOrder")}
+                </button>
+                <BranchPickerPopover
+                  open={finalPopOpen}
+                  onClose={() => setFinalPopOpen(false)}
+                  containerRef={finalRef}
+                  lang={lang}
+                  messageBuilder={orderMsgBuilder}
+                />
+              </div>
               <Link
                 to="/reservation"
                 className="inline-flex items-center gap-2 rounded-full border border-primary-foreground/30 px-6 py-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-foreground/10"

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { MapPin, Phone, Clock, Mail, MessageCircle } from "lucide-react";
+import { MapPin, Phone, Clock, Mail, MessageCircle, ExternalLink, Star } from "lucide-react";
 import { useLang, t } from "@/lib/i18n";
-import { CONTACT, waLink } from "@/lib/contact";
+import { CONTACT, BRANCHES, type Branch } from "@/lib/contact";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -10,12 +10,13 @@ export const Route = createFileRoute("/contact")({
       {
         name: "description",
         content:
-          "Lokasi, telefon, WhatsApp dan waktu operasi Restoran Sate Famili di Kajang, Selangor.",
+          "Lokasi, telefon, WhatsApp dan waktu operasi Restoran Sate Famili di Klang dan Petaling Jaya.",
       },
       { property: "og:title", content: "Contact — Restoran Sate Famili" },
       {
         property: "og:description",
-        content: "Find us, call us, or chat with us on WhatsApp. Located in Kajang, Selangor.",
+        content:
+          "Find us at Meru Klang, Pekan Meru, or Mutiara Damansara. Chat on WhatsApp.",
       },
     ],
   }),
@@ -24,11 +25,6 @@ export const Route = createFileRoute("/contact")({
 
 function ContactPage() {
   const { lang } = useLang();
-  const chatHref = waLink(
-    lang === "bm"
-      ? `Salam! Saya ada pertanyaan tentang ${CONTACT.name}.`
-      : `Hi! I have a question about ${CONTACT.name}.`,
-  );
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
@@ -42,76 +38,125 @@ function ContactPage() {
         <p className="mt-3 text-muted-foreground">{t(lang, "contact.subtitle")}</p>
       </header>
 
-      <div className="mt-12 grid gap-8 lg:grid-cols-2">
-        {/* Info */}
-        <div className="space-y-4">
-          <InfoCard
-            icon={MapPin}
-            label={t(lang, "contact.address")}
-            value={CONTACT.address}
-          />
-          <InfoCard
-            icon={Phone}
-            label={t(lang, "contact.phone")}
-            value={CONTACT.whatsappDisplay}
-            href={`tel:${CONTACT.phoneTel}`}
-          />
-          <InfoCard
-            icon={Mail}
-            label={t(lang, "contact.email")}
-            value={CONTACT.email}
-            href={`mailto:${CONTACT.email}`}
-          />
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-card">
-            <div className="flex items-start gap-4">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-gold text-primary shadow-gold">
-                <Clock className="h-5 w-5" />
-              </span>
-              <div className="flex-1">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {t(lang, "contact.hours")}
-                </p>
-                <ul className="mt-2 space-y-1 text-sm text-foreground">
-                  {CONTACT.hours.map((h) => (
-                    <li key={h.time} className="flex justify-between gap-4">
-                      <span className="font-medium">
-                        {lang === "bm" ? h.dayBM : h.dayEN}
-                      </span>
-                      <span className="text-muted-foreground">{h.time}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
+      {/* Shared contact */}
+      <div className="mt-8 flex flex-wrap gap-4">
+        <InfoPill
+          icon={Mail}
+          label={t(lang, "contact.email")}
+          value={CONTACT.email}
+          href={`mailto:${CONTACT.email}`}
+        />
+      </div>
 
-          <a
-            href={chatHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-gold px-6 py-3.5 text-sm font-semibold text-primary shadow-gold transition-transform hover:scale-[1.02]"
-          >
-            <MessageCircle className="h-4 w-4" />
-            {t(lang, "contact.chatNow")}
-          </a>
-        </div>
-
-        {/* Map */}
-        <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-card">
-          <iframe
-            title="Google map showing Restoran Sate Famili location"
-            src={CONTACT.mapsEmbedSrc}
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            className="h-full min-h-[420px] w-full border-0"
-          />
-        </div>
+      {/* Branch cards */}
+      <div className="mt-12 grid gap-8 lg:grid-cols-3">
+        {BRANCHES.map((branch) => (
+          <BranchCard key={branch.id} branch={branch} lang={lang} />
+        ))}
       </div>
     </div>
   );
 }
 
-function InfoCard({
+function BranchCard({ branch, lang }: { branch: Branch; lang: "bm" | "en" }) {
+  const chatMsg =
+    lang === "bm"
+      ? `Salam! Saya ada pertanyaan tentang ${CONTACT.name} (${branch.shortName}).`
+      : `Hi! I have a question about ${CONTACT.name} (${branch.shortNameEN}).`;
+  const chatHref = `https://wa.me/${branch.whatsappNumber}?text=${encodeURIComponent(chatMsg)}`;
+
+  return (
+    <article className="flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-card">
+      {/* Map */}
+      <div className="h-48 w-full">
+        <iframe
+          title={`Google map for ${branch.shortName}`}
+          src={branch.mapsEmbedSrc}
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          className="h-full w-full border-0"
+        />
+      </div>
+
+      {/* Info */}
+      <div className="flex flex-1 flex-col p-6">
+        <div className="flex items-start justify-between gap-2">
+          <h2 className="font-display text-xl font-bold text-foreground">
+            {lang === "bm" ? branch.shortName : branch.shortNameEN}
+          </h2>
+          <div className="flex shrink-0 items-center gap-1">
+            {branch.isHQ && (
+              <span className="rounded-full bg-secondary/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-secondary">
+                HQ
+              </span>
+            )}
+            {branch.googleRating && (
+              <span className="flex items-center gap-0.5 rounded-full bg-secondary/15 px-2 py-0.5 text-xs font-semibold text-secondary">
+                <Star className="h-3 w-3 fill-secondary" />
+                {branch.googleRating}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <ul className="mt-4 space-y-3 text-sm">
+          <li className="flex items-start gap-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
+              <MapPin className="h-4 w-4" />
+            </span>
+            <span className="text-foreground/85">{branch.address}</span>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
+              <Phone className="h-4 w-4" />
+            </span>
+            <a href={`tel:${branch.phoneTel}`} className="text-foreground/85 hover:text-secondary">
+              {branch.whatsappDisplay}
+            </a>
+          </li>
+          <li className="flex items-start gap-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
+              <Clock className="h-4 w-4" />
+            </span>
+            <div className="space-y-0.5">
+              {branch.hours.map((h) => (
+                <div key={h.dayBM + h.time}>
+                  <span className="font-medium text-foreground">
+                    {lang === "bm" ? h.dayBM : h.dayEN}:
+                  </span>{" "}
+                  <span className="text-muted-foreground">{h.time}</span>
+                </div>
+              ))}
+            </div>
+          </li>
+        </ul>
+
+        <div className="mt-auto flex flex-wrap gap-2 pt-5">
+          <a
+            href={chatHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-gradient-gold px-4 py-2.5 text-sm font-semibold text-primary shadow-gold transition-transform hover:scale-[1.02]"
+          >
+            <MessageCircle className="h-4 w-4" />
+            {t(lang, "branch.chatBranch")}
+          </a>
+          <a
+            href={branch.mapsLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:border-secondary/40 hover:text-secondary"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            {t(lang, "branch.viewOnMap")}
+          </a>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function InfoPill({
   icon: Icon,
   label,
   value,
@@ -120,30 +165,22 @@ function InfoCard({
   icon: React.ElementType;
   label: string;
   value: string;
-  href?: string;
+  href: string;
 }) {
-  const content = (
-    <div className="flex items-start gap-4">
-      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground">
-        <Icon className="h-5 w-5" />
-      </span>
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          {label}
-        </p>
-        <p className="mt-1 text-sm font-medium text-foreground">{value}</p>
-      </div>
-    </div>
-  );
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 shadow-card transition-colors hover:border-secondary/40">
-      {href ? (
-        <a href={href} className="block">
-          {content}
-        </a>
-      ) : (
-        content
-      )}
-    </div>
+    <a
+      href={href}
+      className="inline-flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-3 shadow-card transition-colors hover:border-secondary/40"
+    >
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-gradient-gold text-primary shadow-gold">
+        <Icon className="h-4 w-4" />
+      </span>
+      <span>
+        <span className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {label}
+        </span>
+        <span className="text-sm font-medium text-foreground">{value}</span>
+      </span>
+    </a>
   );
 }

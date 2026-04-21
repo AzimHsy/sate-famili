@@ -1,5 +1,7 @@
-import { useLang } from "@/lib/i18n";
-import { CONTACT, waLink } from "@/lib/contact";
+import { useState, useRef, useEffect } from "react";
+import { useLang, t } from "@/lib/i18n";
+import { BRANCHES } from "@/lib/branchData";
+import { CONTACT } from "@/lib/contact";
 
 // Inline brand-correct WhatsApp glyph (no emoji shadows, scales crisply on mobile).
 function WhatsAppIcon({ className }: { className?: string }) {
@@ -17,21 +19,87 @@ function WhatsAppIcon({ className }: { className?: string }) {
 
 export function FloatingWhatsApp() {
   const { lang } = useLang();
-  const href = waLink(
-    lang === "bm"
-      ? `Salam! Saya ada pertanyaan tentang ${CONTACT.name}.`
-      : `Hi! I have a question about ${CONTACT.name}.`,
-  );
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open]);
+
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={lang === "bm" ? "Chat di WhatsApp" : "Chat on WhatsApp"}
-      className="fixed bottom-5 right-5 z-40 grid h-14 w-14 place-items-center rounded-full bg-[oklch(0.7_0.17_145)] text-white shadow-elegant transition-transform hover:scale-110 sm:bottom-6 sm:right-6 sm:h-16 sm:w-16"
-    >
-      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[oklch(0.7_0.17_145)] opacity-30" />
-      <WhatsAppIcon className="relative h-7 w-7 sm:h-8 sm:w-8" />
-    </a>
+    <div ref={containerRef} className="fixed bottom-5 right-5 z-40 sm:bottom-6 sm:right-6">
+      {/* Popover */}
+      {open && (
+        <div className="absolute bottom-full right-0 mb-3 w-64 animate-in fade-in slide-in-from-bottom-2 rounded-2xl border border-border bg-card p-3 shadow-elegant">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-secondary">
+            {t(lang, "branch.selectBranch")}
+          </p>
+          <ul className="space-y-1.5">
+            {BRANCHES.map((branch) => {
+              const msg =
+                lang === "bm"
+                  ? `Salam! Saya ada pertanyaan tentang ${CONTACT.name} (${branch.shortName}).`
+                  : `Hi! I have a question about ${CONTACT.name} (${branch.shortNameEN}).`;
+              const href = `https://wa.me/${branch.whatsappNumber}?text=${encodeURIComponent(msg)}`;
+              return (
+                <li key={branch.id}>
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-secondary/10"
+                    onClick={() => setOpen(false)}
+                  >
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[oklch(0.7_0.17_145)] text-white">
+                      <WhatsAppIcon className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold text-foreground">
+                        {lang === "bm" ? branch.shortName : branch.shortNameEN}
+                        {branch.isHQ && (
+                          <span className="ml-1 text-[9px] font-bold uppercase text-secondary">
+                            HQ
+                          </span>
+                        )}
+                      </span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        {branch.whatsappDisplay}
+                      </span>
+                    </span>
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      {/* FAB */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-label={lang === "bm" ? "Chat di WhatsApp" : "Chat on WhatsApp"}
+        className="relative grid h-14 w-14 place-items-center rounded-full bg-[oklch(0.7_0.17_145)] text-white shadow-elegant transition-transform hover:scale-110 sm:h-16 sm:w-16"
+      >
+        {!open && (
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[oklch(0.7_0.17_145)] opacity-30" />
+        )}
+        <WhatsAppIcon className="relative h-7 w-7 sm:h-8 sm:w-8" />
+      </button>
+    </div>
   );
 }

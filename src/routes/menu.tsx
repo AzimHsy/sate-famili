@@ -3,7 +3,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Minus, Plus, Trash2, MessageCircle } from "lucide-react";
 import { useLang, t } from "@/lib/i18n";
 import { MENU, CATEGORY_ORDER, type MenuItem } from "@/lib/menuData";
-import { CONTACT, waLink } from "@/lib/contact";
+import { CONTACT, waLinkForBranch, getBranch } from "@/lib/contact";
+import { BranchSelector } from "@/components/BranchSelector";
 
 export const Route = createFileRoute("/menu")({
   head: () => ({
@@ -32,6 +33,7 @@ function MenuPage() {
   const [cart, setCart] = useState<Record<string, number>>({});
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [branchId, setBranchId] = useState<number | null>(null);
 
   const grouped = useMemo(() => {
     return CATEGORY_ORDER.map((cat) => ({
@@ -68,8 +70,17 @@ function MenuPage() {
   const clear = () => setCart({});
 
   const buildMessage = () => {
+    const branch = branchId ? getBranch(branchId) : null;
+    const branchName = branch
+      ? lang === "bm"
+        ? branch.shortName
+        : branch.shortNameEN
+      : "";
     const greeting =
       lang === "bm" ? "Salam! Saya nak order:" : "Hi! I'd like to order:";
+    const branchLine = branchName
+      ? `${lang === "bm" ? "Cawangan" : "Branch"}: ${branchName}\n`
+      : "";
     const itemList = lines
       .map((l) => {
         const name = lang === "bm" ? l.item.nameBM : l.item.nameEN;
@@ -85,10 +96,10 @@ function MenuPage() {
     const totalLine = `\n${lang === "bm" ? "Jumlah" : "Total"}: RM${total.toFixed(2)}`;
     const nameLine = name ? `\n${lang === "bm" ? "Nama" : "Name"}: ${name}` : "";
     const phoneLine = phone ? `\n${lang === "bm" ? "No. Tel" : "Phone"}: ${phone}` : "";
-    return `${greeting}\n${itemList}${totalLine}${nameLine}${phoneLine}`;
+    return `${greeting}\n${branchLine}${itemList}${totalLine}${nameLine}${phoneLine}`;
   };
 
-  const sendDisabled = lines.length === 0;
+  const sendDisabled = lines.length === 0 || !branchId;
 
   return (
     <div className="bg-gradient-warm">
@@ -214,6 +225,15 @@ function MenuPage() {
                 )}
               </div>
 
+              {/* Branch selector in cart */}
+              <div className="mt-4">
+                <BranchSelector
+                  value={branchId}
+                  onChange={setBranchId}
+                  compact
+                />
+              </div>
+
               {lines.length === 0 ? (
                 <p className="mt-4 rounded-xl bg-muted px-4 py-6 text-center text-sm text-muted-foreground">
                   {t(lang, "menu.empty")}
@@ -271,7 +291,7 @@ function MenuPage() {
               </div>
 
               <a
-                href={sendDisabled ? undefined : waLink(buildMessage())}
+                href={sendDisabled || !branchId ? undefined : waLinkForBranch(branchId, buildMessage())}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-disabled={sendDisabled}
