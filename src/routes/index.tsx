@@ -80,8 +80,7 @@ function BranchPickerPopover({
       </p>
       <ul className="space-y-1">
         {BRANCHES.map((branch) => {
-          const branchLabel =
-            lang === "bm" ? branch.shortName : branch.shortNameEN;
+          const branchLabel = lang === "bm" ? branch.shortName : branch.shortNameEN;
           const msg = messageBuilder(branchLabel);
           const href = `https://wa.me/${branch.whatsappNumber}?text=${encodeURIComponent(msg)}`;
           return (
@@ -100,9 +99,7 @@ function BranchPickerPopover({
                   <span className="block text-sm font-semibold text-foreground">
                     {branchLabel}
                     {branch.isHQ && (
-                      <span className="ml-1 text-[9px] font-bold uppercase text-secondary">
-                        HQ
-                      </span>
+                      <span className="ml-1 text-[9px] font-bold uppercase text-secondary">HQ</span>
                     )}
                   </span>
                   <span className="block text-[11px] text-muted-foreground">
@@ -139,7 +136,7 @@ function HomePage() {
   return (
     <>
       {/* HERO */}
-      <section className="relative h-screen w-full isolate overflow-hidden md:mt-[-10vh]">
+      <section className="relative h-screen w-full isolate overflow-hidden md:mt-[-8vh]">
         <div className="absolute inset-0 -z-10">
           <img
             src={heroImage}
@@ -330,9 +327,7 @@ function HomePage() {
             <h2 className="mt-3 font-display text-3xl font-bold text-foreground sm:text-4xl">
               {t(lang, "home.branchesTitle")}
             </h2>
-            <p className="mt-3 text-muted-foreground">
-              {t(lang, "home.branchesSub")}
-            </p>
+            <p className="mt-3 text-muted-foreground">{t(lang, "home.branchesSub")}</p>
           </div>
 
           <div className="mt-14 grid gap-6 md:grid-cols-3">
@@ -390,10 +385,7 @@ function HomePage() {
                       </li>
                       <li className="flex items-center gap-2">
                         <Phone className="h-3.5 w-3.5 shrink-0 text-secondary" />
-                        <a
-                          href={`tel:${branch.phoneTel}`}
-                          className="hover:text-secondary"
-                        >
+                        <a href={`tel:${branch.phoneTel}`} className="hover:text-secondary">
                           {branch.whatsappDisplay}
                         </a>
                       </li>
