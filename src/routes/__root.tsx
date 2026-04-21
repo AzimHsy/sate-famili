@@ -66,17 +66,21 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+import { ThemeProvider } from "@/components/ThemeProvider";
+
 function RootComponent() {
   return (
-    <LangProvider>
-      <div className="flex min-h-screen flex-col">
-        <Navbar />
-        <main className="flex-1">
-          <Outlet />
-        </main>
-        <Footer />
-        <FloatingWhatsApp />
-      </div>
-    </LangProvider>
+    <ThemeProvider>
+      <LangProvider>
+        <div className="flex min-h-screen flex-col">
+          <Navbar />
+          <main className="flex-1">
+            <Outlet />
+          </main>
+          <Footer />
+          <FloatingWhatsApp />
+        </div>
+      </LangProvider>
+    </ThemeProvider>
   );
 }
